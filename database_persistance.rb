@@ -79,7 +79,7 @@ class DatabasePersistance
     result.first['category_total'].to_f
   end
 
-  def add_new_expense(description, amount, category_id, date=Date.today)
+  def add_new_expense(description, amount, category_id, date)
     sql = <<~SQL
       INSERT INTO expenses (description, amount, category_id, expense_date)
         VALUES ($1, $2, $3, $4)

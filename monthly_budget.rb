@@ -58,6 +58,11 @@ post '/budget/expenses' do
   description = params[:description].strip
   amount = params[:amount].strip
   category = params[:category].strip
+  date = if params[:date] == ''
+           Date.today
+         else
+           params[:date]
+         end
 
   error = error_for_expense(description, amount, category)
   if error
@@ -65,7 +70,7 @@ post '/budget/expenses' do
     erb :new_expense
   else
     category_id = @storage.find_category(category) || @storage.create_new_category(category)
-    @storage.add_new_expense(description, amount, category_id)
+    @storage.add_new_expense(description, amount, category_id, date)
     session[:message] = 'Successfully added expense.'
 
     redirect '/budget'
