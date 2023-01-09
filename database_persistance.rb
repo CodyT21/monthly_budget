@@ -93,7 +93,14 @@ class DatabasePersistance
   def delete_bill(id)
   end
 
-  def add_new_category(name)
+  def create_new_category(name)
+    sql = "INSERT INTO categories (name) VALUES ($1)"
+    query(sql, name.capitalize)
+
+    category_id = find_category(name)
+    create_new_budget(category_id)
+
+    category_id
   end
 
   def delete_category(id)
@@ -102,7 +109,12 @@ class DatabasePersistance
   def find_category(name)
     sql = "SELECT id FROM categories WHERE name ILIKE $1"
     result = query(sql, name)
-    result.first['id']
+    result.ntuples == 0 ? nil : result.first['id']
+  end
+
+  def create_new_budget(category_id, max_amount=0)
+    sql = "INSERT INTO budgets (category_id, max_amount) VALUES ($1, $2)"
+    query(sql, category_id, max_amount)
   end
 
   def calculate_monthly_total

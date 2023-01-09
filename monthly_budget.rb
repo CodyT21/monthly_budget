@@ -15,6 +15,16 @@ configure(:development) do
   also_reload 'database_persistance.rb' if development?
 end
 
+def error_for_new_expense(description, amount, category)
+  if !(1..255).cover? description.size
+    return 'Expense description must be between 1 and 255 characters.'
+  elsif !(amount =~ /^\d{1,4}(?:\.\d{1,2})?$/)
+    return 'Enter a valid amount between 0.00 and 9999.99.'
+  elsif !(1..100).cover? category.size
+    return 'Category name must be between 1 and 100 characters.'
+  end
+end
+
 before do
   @storage = DatabasePersistance.new(logger)
 end
@@ -46,12 +56,19 @@ end
 # add new expense
 post '/budget/expenses' do
   description = params[:description].strip
-  amount = params[:amount].to_f.round(2)
+  amount = params[:amount].strip
   category = params[:category].strip
-  category_id = @storage.find_category(category)
-  @storage.add_new_expense(description, amount, category_id)
-  session[:message] = 'Successfully added expense.'
 
-  redirect '/budget'
+  error = error_for_new_expense(description, amount, category)
+  if error
+    session[:message] = error
+    erb :new_expense
+  else
+    category_id = @storage.find_category(category) || @storage.create_new_category(category)
+    @storage.add_new_expense(description, amount, category_id)
+    session[:message] = 'Successfully added expense.'
+
+    redirect '/budget'
+  end
 end
   
