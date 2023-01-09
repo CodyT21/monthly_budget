@@ -71,4 +71,12 @@ post '/budget/expenses' do
     redirect '/budget'
   end
 end
-  
+
+# delete an expense
+post '/budget/expenses/:expense_id/destroy' do
+  id = params[:expense_id].to_i
+  @storage.delete_expense(id)
+  session[:message] = 'The expense has been deleted successfully.'
+
+  redirect '/budget'
+end

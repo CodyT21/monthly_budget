@@ -21,7 +21,8 @@ class DatabasePersistance
     result = query(sql)
 
     result.map do |tuple|
-      { description: tuple['description'],
+      { id: tuple['id'],
+        description: tuple['description'],
         amount: tuple['amount'],
         date: tuple['expense_date'],
         category: tuple['category_name'] }
@@ -39,7 +40,8 @@ class DatabasePersistance
     result = query(sql, limit)
 
     result.map do |tuple|
-      { description: tuple['description'],
+      { id: tuple['id'],
+        description: tuple['description'],
         amount: tuple['amount'],
         date: tuple['expense_date'],
         category: tuple['category_name'] }
@@ -85,6 +87,8 @@ class DatabasePersistance
   end
 
   def delete_expense(id)
+    sql = "DELETE FROM expenses WHERE id = $1"
+    query(sql, id)
   end
 
   def add_bill(description, amount, due_date)

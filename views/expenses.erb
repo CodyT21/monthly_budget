@@ -1,6 +1,14 @@
 <h4>All Expenses:</h4>
 <ul>
   <% @expenses.each do |expense| %>
-    <li><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></li>
+    <li>
+      <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post">
+        <div>
+          <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
+          <input type="submit" value="Delete">
+      </form>
+    </li>
   <% end %>
 </ul>
+
+<a href="/budget"><button>Return to Home</button></a>
