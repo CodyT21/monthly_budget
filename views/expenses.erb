@@ -2,10 +2,10 @@
 <ul>
   <% @expenses.each do |expense| %>
     <li>
-      <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post">
-        <div>
-          <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
-          <input type="submit" value="Delete">
+      <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
+      <a href="/budget/expenses/<%= expense[:id] %>/edit" style="display: inline;"><button>Edit</button></a>
+      <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post" style="display: inline;">
+        <input type="submit" value="Delete">
       </form>
     </li>
   <% end %>

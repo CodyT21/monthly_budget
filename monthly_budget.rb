@@ -15,7 +15,7 @@ configure(:development) do
   also_reload 'database_persistance.rb' if development?
 end
 
-def error_for_new_expense(description, amount, category)
+def error_for_expense(description, amount, category)
   if !(1..255).cover? description.size
     return 'Expense description must be between 1 and 255 characters.'
   elsif !(amount =~ /^\d{1,4}(?:\.\d{1,2})?$/)
@@ -59,7 +59,7 @@ post '/budget/expenses' do
   amount = params[:amount].strip
   category = params[:category].strip
 
-  error = error_for_new_expense(description, amount, category)
+  error = error_for_expense(description, amount, category)
   if error
     session[:message] = error
     erb :new_expense
@@ -79,4 +79,34 @@ post '/budget/expenses/:expense_id/destroy' do
   session[:message] = 'The expense has been deleted successfully.'
 
   redirect '/budget'
+end
+
+# render edit expense page
+get '/budget/expenses/:expense_id/edit' do
+  id = params[:expense_id].to_i
+  @expense = @storage.find_expense(id)
+
+  erb :edit_expense
+end
+
+# edit an expense
+post '/budget/expenses/:expense_id' do
+  id = params[:expense_id].to_i
+  description = params[:description].strip
+  amount = params[:amount].strip
+  category = params[:category].strip
+  date = params[:date].strip
+
+  error = error_for_expense(description, amount, category)
+  if error
+    @expense = @storage.find_expense(id)
+    session[:message] = error
+    erb :edit_expense
+  else
+    category_id = @storage.find_category(category) || @storage.create_new_category(category)
+    @storage.edit_expense(id, description, amount, category_id, date)
+    session[:message] = 'Successfully updated expense.'
+
+    redirect '/budget'
+  end
 end

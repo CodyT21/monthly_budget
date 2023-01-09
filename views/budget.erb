@@ -8,16 +8,23 @@
 <h4>Recent Expenses:</h4>
 <ul>
   <% @expenses.each do |expense| %>
-    <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post">
-        <div>
-          <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
-          <input type="submit" value="Delete">
+    <li>
+      <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
+      <a href="/budget/expenses/<%= expense[:id] %>/edit" style="display: inline;"><button>Edit</button></a>
+      <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post" style="display: inline;">
+        <input type="submit" value="Delete">
       </form>
+    </li>
   <% end %>
 </ul>
 
-<a href='/budget/expenses'><button>View All Expenses</button></a>
-<button>Create a New Budget</button>
-<button>Edit a Current Budget</button>
-<a href='/budget/expenses/new'><button>Add an Expense</button></a>
-<button>Edit an Expense</button>
+<div>
+  <a href='/budget/expenses'><button>View All Expenses</button></a>
+</div>
+<div>
+  <a href='/budget/expenses/new'><button>Add an Expense</button></a>
+</div>
+<div>
+  <button>Create a New Budget</button>
+  <button>Edit a Current Budget</button>
+</div>

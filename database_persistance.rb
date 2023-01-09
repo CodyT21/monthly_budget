@@ -21,11 +21,7 @@ class DatabasePersistance
     result = query(sql)
 
     result.map do |tuple|
-      { id: tuple['id'],
-        description: tuple['description'],
-        amount: tuple['amount'],
-        date: tuple['expense_date'],
-        category: tuple['category_name'] }
+      tuple_to_hash_for_expense(tuple)
     end
   end
 
@@ -40,12 +36,20 @@ class DatabasePersistance
     result = query(sql, limit)
 
     result.map do |tuple|
-      { id: tuple['id'],
-        description: tuple['description'],
-        amount: tuple['amount'],
-        date: tuple['expense_date'],
-        category: tuple['category_name'] }
+      tuple_to_hash_for_expense(tuple)
     end
+  end
+
+  def find_expense(id)
+    sql = <<~SQL
+      SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
+        FROM expenses e
+        INNER JOIN categories c ON e.category_id = c.id
+        WHERE e.id = $1
+    SQL
+    result = query(sql, id)
+
+    tuple_to_hash_for_expense(result.first)
   end
 
   def budget_amounts_remaining
@@ -75,9 +79,6 @@ class DatabasePersistance
     result.first['category_total'].to_f
   end
 
-  def find_expense(id)
-  end
-
   def add_new_expense(description, amount, category_id, date=Date.today)
     sql = <<~SQL
       INSERT INTO expenses (description, amount, category_id, expense_date)
@@ -89,6 +90,15 @@ class DatabasePersistance
   def delete_expense(id)
     sql = "DELETE FROM expenses WHERE id = $1"
     query(sql, id)
+  end
+
+  def edit_expense(id, description, amount, category_id, date)
+    sql = <<~SQL
+      UPDATE expenses
+        SET description = $1, amount = $2, category_id = $3, expense_date = $4
+        WHERE id = $5
+    SQL
+    query(sql, description, amount, category_id, date, id)
   end
 
   def add_bill(description, amount, due_date)
@@ -125,5 +135,15 @@ class DatabasePersistance
   end
 
   def calculate_yearly_total
+  end
+
+  private
+
+  def tuple_to_hash_for_expense(tuple)
+    { id: tuple['id'],
+      description: tuple['description'],
+      amount: tuple['amount'],
+      date: tuple['expense_date'],
+      category: tuple['category_name'] }
   end
 end
