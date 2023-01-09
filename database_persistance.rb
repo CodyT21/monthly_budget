@@ -57,6 +57,7 @@ class DatabasePersistance
       SELECT categories.id, categories.name, budgets.max_amount
         FROM categories
         INNER JOIN budgets ON categories.id = budgets.category_id
+        WHERE category_id IN (SELECT category_id FROM expenses)
         ORDER BY categories.name
     SQL
     result = query(sql)
