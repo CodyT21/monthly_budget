@@ -1,0 +1,18 @@
+<h2>Monthly Budget</h2>
+<h4>Budget Progress:</h4>
+<ul>
+  <% @budgets.each do |budget| %>
+    <li><%= budget[:category] %> | <%= budget[:max_amount] %> | <%= budget[:amount_remaining] %></li>
+  <% end %>
+</ul>
+<h4>Expenses:</h4>
+<ul>
+  <% @expenses.each do |expense| %>
+    <li><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></li>
+  <% end %>
+</ul>
+
+<button>Create a New Budget</button>
+<button>Edit a Current Budget</button>
+<button>Add an Expense</button>
+<button>Edit an Expense</button>

@@ -9,14 +9,20 @@ CREATE TABLE bills (
 
 CREATE TABLE categories (
   id serial PRIMARY KEY,
-  name text NOT NULL UNIQUE,
-  budgeted_amount decimal(6, 2) NOT NULL
+  name text NOT NULL UNIQUE
 );
 
 CREATE TABLE expenses (
   id serial PRIMARY KEY,
-  amount decimal(6, 2) NOT NULL DEFAULT 0,
+  description text NOT NULL,
+  amount decimal(6, 2) NOT NULL DEFAULT 0.0,
   expense_date date NOT NULL DEFAULT NOW(),
   category_id integer NOT NULL REFERENCES categories (id),
   bill_id integer REFERENCES bills (id)
+);
+
+CREATE TABLE budgets (
+  id serial PRIMARY KEY,
+  category_id integer NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
+  max_amount decimal(6, 2) NOT NULL DEFAULT 0.0
 );
