@@ -5,14 +5,15 @@
     <li><%= budget[:category] %> | <%= budget[:max_amount] %> | <%= budget[:amount_remaining] %></li>
   <% end %>
 </ul>
-<h4>Expenses:</h4>
+<h4>Recent Expenses:</h4>
 <ul>
   <% @expenses.each do |expense| %>
     <li><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></li>
   <% end %>
 </ul>
 
+<a href='/budget/expenses'><button>View All Expenses</button></a>
 <button>Create a New Budget</button>
 <button>Edit a Current Budget</button>
-<button>Add an Expense</button>
+<a href='/budget/expenses/new'><button>Add an Expense</button></a>
 <button>Edit an Expense</button>

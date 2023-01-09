@@ -16,9 +16,27 @@ class DatabasePersistance
       SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
         FROM expenses e
         INNER JOIN categories c ON e.category_id = c.id
-        ORDER BY e.id
+        ORDER BY e.expense_date, e.id
     SQL
     result = query(sql)
+
+    result.map do |tuple|
+      { description: tuple['description'],
+        amount: tuple['amount'],
+        date: tuple['expense_date'],
+        category: tuple['category_name'] }
+    end
+  end
+
+  def last_n_expenses(limit)
+    sql = <<~SQL
+      SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
+        FROM expenses e
+        INNER JOIN categories c ON e.category_id = c.id
+        ORDER BY e.expense_date DESC, e.id DESC
+        LIMIT $1
+    SQL
+    result = query(sql, limit)
 
     result.map do |tuple|
       { description: tuple['description'],
@@ -58,7 +76,12 @@ class DatabasePersistance
   def find_expense(id)
   end
 
-  def add_expense(description, amount, date=Date.today)
+  def add_new_expense(description, amount, category_id, date=Date.today)
+    sql = <<~SQL
+      INSERT INTO expenses (description, amount, category_id, expense_date)
+        VALUES ($1, $2, $3, $4)
+    SQL
+    query(sql, description, amount, category_id, date)
   end
 
   def delete_expense(id)
@@ -74,6 +97,12 @@ class DatabasePersistance
   end
 
   def delete_category(id)
+  end
+
+  def find_category(name)
+    sql = "SELECT id FROM categories WHERE name ILIKE $1"
+    result = query(sql, name)
+    result.first['id']
   end
 
   def calculate_monthly_total

@@ -26,7 +26,32 @@ end
 
 get '/budget' do
   @budgets = @storage.budget_amounts_remaining
-  @expenses = @storage.all_expenses
+  @expenses = @storage.last_n_expenses(5)
   
   erb :budget
 end
+
+# display all expenses
+get '/budget/expenses' do
+  @expenses = @storage.all_expenses
+
+  erb :expenses
+end
+
+# display new expense form
+get '/budget/expenses/new' do
+  erb :new_expense
+end
+
+# add new expense
+post '/budget/expenses' do
+  description = params[:description].strip
+  amount = params[:amount].to_f.round(2)
+  category = params[:category].strip
+  category_id = @storage.find_category(category)
+  @storage.add_new_expense(description, amount, category_id)
+  session[:message] = 'Successfully added expense.'
+
+  redirect '/budget'
+end
+  

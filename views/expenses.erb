@@ -1,0 +1,6 @@
+<h4>All Expenses:</h4>
+<ul>
+  <% @expenses.each do |expense| %>
+    <li><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></li>
+  <% end %>
+</ul>
