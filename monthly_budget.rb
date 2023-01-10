@@ -36,7 +36,7 @@ end
 
 get '/budget' do
   @budgets = @storage.budget_amounts_remaining
-  @expenses = @storage.last_n_expenses(5)
+  @expenses = @storage.last_n_expenses(10)
   
   erb :budget
 end
@@ -114,4 +114,13 @@ post '/budget/expenses/:expense_id' do
 
     redirect '/budget'
   end
+end
+
+# delete a category
+post '/budget/categories/:category_id/destroy' do
+  category_id = params[:category_id].to_i
+  @storage.delete_category(category_id)
+  session[:message] = 'The category was successfully deleted.'
+
+  redirect '/budget'
 end

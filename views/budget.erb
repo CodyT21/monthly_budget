@@ -2,7 +2,17 @@
 <h4>Budget Progress:</h4>
 <ul>
   <% @budgets.each do |budget| %>
-    <li><%= budget[:category] %> | <%= budget[:max_amount] %> | <%= budget[:amount_remaining] %></li>
+    <li>
+      <% if budget[:category] == 'Uncategorized' %>
+        <p><%= budget[:category] %> | <%= budget[:amount_remaining] %></p>
+      <% else %>  
+        <p style="display: inline;"><%= budget[:category] %> | <%= budget[:max_amount] %> | <%= budget[:amount_remaining] %></p>
+        <a href="/budget/categories/<%= budget[:id] %>/edit" style="display: inline;"><button>Edit Category</button></a>
+        <form action="/budget/categories/<%= budget[:id] %>/destroy" method="post" style="display: inline;">
+          <input type="submit" value="Delete Category">
+        </form>
+      <% end %>
+    </li>
   <% end %>
 </ul>
 <h4>Recent Expenses:</h4>

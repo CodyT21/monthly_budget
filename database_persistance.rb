@@ -64,7 +64,8 @@ class DatabasePersistance
 
     result.map do |tuple|
       amount_remaining_in_category = tuple['max_amount'].to_f - category_expenses_total(tuple['id'])
-      { category: tuple['name'],
+      { id: tuple['id'],
+        category: tuple['name'],
         max_amount: tuple['max_amount'],
         amount_remaining: "%.2f" % (amount_remaining_in_category) }
     end
@@ -118,7 +119,13 @@ class DatabasePersistance
     category_id
   end
 
-  def delete_category(id)
+  def delete_category(category_id)
+    add_uncategorized_to_categories if uncategorized?
+    uncategorized_id = find_category('Uncategorized')
+    update_expense_categories(category_id, uncategorized_id)
+    
+    sql = "DELETE FROM categories WHERE id = $1"
+    query(sql, category_id)
   end
 
   def find_category(name)
@@ -146,5 +153,25 @@ class DatabasePersistance
       amount: tuple['amount'],
       date: tuple['expense_date'],
       category: tuple['category_name'] }
+  end
+
+  def uncategorized?
+    sql = "SELECT id FROM categories WHERE name ILIKE 'Uncategorized'"
+    result = query(sql)
+    result.ntuples == 0
+  end
+
+  def add_uncategorized_to_categories
+    sql = "INSERT INTO categories (name) VALUES ('Uncategorized')"
+    query(sql)
+  end
+
+  def update_expense_categories(current_category_id, new_category_id)
+    sql = <<~SQL
+      UPDATE expenses
+        SET category_id = $1
+        WHERE category_id = $2
+    SQL
+    query(sql, new_category_id, current_category_id)
   end
 end
