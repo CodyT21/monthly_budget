@@ -18,11 +18,27 @@ end
 def error_for_expense(description, amount, category)
   if !(1..255).cover? description.size
     return 'Expense description must be between 1 and 255 characters.'
-  elsif !(amount =~ /^\d{1,4}(?:\.\d{1,2})?$/)
+  elsif !valid_amount?(amount)
     return 'Enter a valid amount between 0.00 and 9999.99.'
-  elsif !(1..100).cover? category.size
+  elsif !valid_category_name(category)
     return 'Category name must be between 1 and 100 characters.'
   end
+end
+
+def error_for_category(name, max_amount)
+  if !valid_category_name(name)
+    return 'Category name must be between 1 and 100 characters.'
+  elsif !valid_amount?(max_amount)
+    return 'Enter a valid amount between 0.00 and 9999.99.'
+  end
+end
+
+def valid_amount?(amount)
+  amount =~ /^\d{1,4}(?:\.\d{1,2})?$/
+end
+
+def valid_category_name(name)
+  (1..100).cover? name.size
 end
 
 before do
@@ -69,7 +85,7 @@ post '/budget/expenses' do
     session[:message] = error
     erb :new_expense
   else
-    category_id = @storage.find_category(category) || @storage.create_new_category(category)
+    category_id = @storage.find_category_id(category) || @storage.create_new_category(category)
     @storage.add_new_expense(description, amount, category_id, date)
     session[:message] = 'Successfully added expense.'
 
@@ -108,7 +124,7 @@ post '/budget/expenses/:expense_id' do
     session[:message] = error
     erb :edit_expense
   else
-    category_id = @storage.find_category(category) || @storage.create_new_category(category)
+    category_id = @storage.find_category_id(category) || @storage.create_new_category(category)
     @storage.edit_expense(id, description, amount, category_id, date)
     session[:message] = 'Successfully updated expense.'
 
@@ -124,3 +140,31 @@ post '/budget/categories/:category_id/destroy' do
 
   redirect '/budget'
 end
+
+# render edit category page
+get '/budget/categories/:category_id/edit' do
+  category_id = params[:category_id].to_i
+  @budget = @storage.find_budget(category_id)
+
+  erb :edit_category
+end
+
+# edit a category
+post '/budget/categories/:category_id' do
+  category_id = params[:category_id].to_i
+  category_name = params[:name].strip
+  max_amount = params[:max_amount].strip
+
+  error = error_for_category(category_name, max_amount)
+  if error
+    @budget = @storage.find_budget(category_id)
+    session[:message] = error
+    erb :edit_category
+  else
+    @storage.edit_category(category_id, category_name, max_amount)
+    session[:message] = 'Successfully updated category.'
+    
+    redirect '/budget'
+  end
+end
+    

@@ -1,0 +1,18 @@
+<h2>Editing Category: <%= @budget[:category] %></h2>
+<form action="/budget/categories/<%= @budget[:id] %>" method="post">
+  <dl>
+    <dd>
+      <label for="name">Category Name:</label>
+      <input name="name" type="text" value="<%= @budget[:category] %>">
+    </dd>
+    <dd>
+      <label for="max_amount">Max Amount:</label>
+      <input name="max_amount" type="text" value="<%= @budget[:max_amount] %>">
+    </dd>
+  </dl>
+  <input type="submit" value="Save">
+  <a href="/budget">Cancel</a>
+</form>
+<form action="/budget/categories/<%= @budget[:id] %>/destroy" method="post" style="display: inline;">
+  <input type="submit" value="Delete Category">
+</form>

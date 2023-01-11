@@ -71,6 +71,21 @@ class DatabasePersistance
     end
   end
 
+  def find_budget(category_id)
+    sql = <<~SQL
+      SELECT categories.id, categories.name, budgets.max_amount
+        FROM categories
+        INNER JOIN budgets ON categories.id = budgets.category_id
+        WHERE category_id = $1
+    SQL
+    result = query(sql, category_id)
+
+    tuple = result.first
+    { id: tuple['id'],
+      category: tuple['name'],
+      max_amount: tuple['max_amount'] }
+  end
+
   def category_expenses_total(category_id)
     sql = <<~SQL
       SELECT ROUND(SUM(amount), 2) AS "category_total"
@@ -113,7 +128,7 @@ class DatabasePersistance
     sql = "INSERT INTO categories (name) VALUES ($1)"
     query(sql, name.capitalize)
 
-    category_id = find_category(name)
+    category_id = find_category_id(name)
     create_new_budget(category_id)
 
     category_id
@@ -121,17 +136,46 @@ class DatabasePersistance
 
   def delete_category(category_id)
     add_uncategorized_to_categories if uncategorized?
-    uncategorized_id = find_category('Uncategorized')
+    uncategorized_id = find_category_id('Uncategorized')
     update_expense_categories(category_id, uncategorized_id)
     
     sql = "DELETE FROM categories WHERE id = $1"
     query(sql, category_id)
   end
 
-  def find_category(name)
+  def edit_category(id, name, max_amount)
+    sql = <<~SQL
+      UPDATE categories
+        SET name = $1
+        WHERE id = $2
+    SQL
+    query(sql, name, id)
+
+    update_budget_amount(id, max_amount)
+  end
+
+  def update_budget_amount(category_id, max_amount)
+    sql = <<~SQL
+      UPDATE budgets
+        SET max_amount = $1
+        WHERE category_id = $2
+    SQL
+    query(sql, max_amount, category_id)
+  end
+
+  def find_category_id(name)
     sql = "SELECT id FROM categories WHERE name ILIKE $1"
     result = query(sql, name)
     result.ntuples == 0 ? nil : result.first['id']
+  end
+
+  def find_category(category_id)
+    sql = "SELECT * FROM categories WHERE id = $1"
+    result = query(sql, category_id)
+
+    result.map do |tuple|
+      { id: tuple['id'], name: tuple['name'] }
+    end
   end
 
   def create_new_budget(category_id, max_amount=0)
