@@ -1,8 +1,8 @@
 require 'pg'
 
 class DatabasePersistance
-  def initialize(logger)
-    @db = PG.connect(dbname: 'budget')
+  def initialize(dbname, logger)
+    @db = PG.connect(dbname: dbname)
     @logger = logger
   end
 

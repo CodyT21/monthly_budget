@@ -42,7 +42,13 @@ def valid_category_name(name)
 end
 
 before do
-  @storage = DatabasePersistance.new(logger)
+  if ENV['RACK_ENV'] == 'test'
+    dbname = 'budget_test'
+  else
+    dbname = 'budget'
+  end
+
+  @storage = DatabasePersistance.new(dbname, logger)
 end
 
 # render home page
@@ -52,7 +58,7 @@ end
 
 get '/budget' do
   @budgets = @storage.budget_amounts_remaining
-  @expenses = @storage.last_n_expenses(10)
+  @expenses = @storage.last_n_expenses(5)
   
   erb :budget
 end
