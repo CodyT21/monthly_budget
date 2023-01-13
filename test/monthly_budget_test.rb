@@ -17,37 +17,27 @@ class MonthlyBudget < Minitest::Test
   end
 
   def add_test_expenses
-    category_ids = %w(Food Utilities Personal Housing).map do |category|
-      find_category_id(category)
-    end
-
     sql = <<~SQL
-      INSERT INTO expenses(description, amount, category_id, expense_date)
-        VALUES ('Lunch', 12.02, $1, '2023-01-11'),
-        ('Paint', 15.12, $3, '2023-01-11'),
-        ('Xcel', 36.25, $2, '2023-01-11'),
-        ('Video Game', 60.56, $3, '2023-01-11'),
-        ('Rent', 1723.24, $4, '2023-01-11'),
-        ('Dinner', 13.56, $1, '2023-01-10');
+      INSERT INTO expenses(id, description, amount, category_id, expense_date)
+        VALUES (1, 'Lunch', 12.02, 1, '2023-01-11'),
+        (2, 'Paint', 15.12, 3, '2023-01-11'),
+        (3, 'Xcel', 36.25, 2, '2023-01-11'),
+        (4, 'Video Game', 60.56, 3, '2023-01-11'),
+        (5, 'Rent', 1723.24, 4, '2023-01-11'),
+        (6, 'Dinner', 13.56, 1, '2023-01-10');
     SQL
-    @db.exec_params(sql, category_ids)
+    @db.exec(sql)
   end
 
   def add_test_categories
     sql = <<~SQL
-      INSERT INTO categories (name)
-        VALUES ('Food'),
-        ('Utilities'),
-        ('Personal'),
-        ('Housing');
+      INSERT INTO categories (id, name)
+        VALUES (1, 'Food'),
+        (2, 'Utilities'),
+        (3, 'Personal'),
+        (4, 'Housing');
       SQL
     @db.exec(sql)
-  end
-
-  def find_category_id(name)
-    sql = "SELECT id FROM categories WHERE name ILIKE $1"
-    result = @db.exec_params(sql, [name])
-    result.ntuples == 0 ? nil : result.first['id']
   end
 
   def setup
@@ -116,5 +106,39 @@ class MonthlyBudget < Minitest::Test
     get '/budget/expenses'
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'Dinner | 13.56 | 2023-01-10 | Food'
+  end
+
+  def test_render_edit_expense_page
+    add_test_categories
+    add_test_expenses
+
+    get '/budget/expenses/1/edit'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<h2>Editing Expense Lunch</h2>'
+    assert_includes last_response.body, %q(<input type="submit")
+  end
+
+  def test_edit_expense
+    add_test_categories
+    add_test_expenses
+
+    post '/budget/expenses/1', { description: 'New Description', amount: '9.99', category: 'New Category', date: '2023-01-12' }
+    assert_equal 302, last_response.status
+    assert_equal 'Successfully updated expense.', session[:message]
+
+    get '/budget'
+    assert_includes last_response.body, 'New Description | 9.99 | 2023-01-12 | New category'
+  end
+
+  def test_delete_expense
+    add_test_categories
+    add_test_expenses
+
+    post 'budget/expenses/1/destroy'
+    assert_equal 302, last_response.status
+    assert_equal 'The expense has been deleted successfully.', session[:message]
+
+    get '/budget'
+    refute_includes last_response.body, 'Lunch | 12.02 | 1 | Food'
   end
 end
