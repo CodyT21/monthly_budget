@@ -14,13 +14,20 @@ class MonthlyBudget < Minitest::Test
     @db.exec('TRUNCATE expenses CASCADE;')
     @db.exec('TRUNCATE categories CASCADE;')
     @db.exec('TRUNCATE bills CASCADE;')
+    insert_test_data
+  end
+
+  def insert_test_data
+    add_test_categories
+    add_test_expenses
+    add_test_budgets
   end
 
   def add_test_expenses
     sql = <<~SQL
       INSERT INTO expenses(id, description, amount, category_id, expense_date)
         VALUES (1, 'Lunch', 12.02, 1, '2023-01-11'),
-        (2, 'Paint', 15.12, 3, '2023-01-11'),
+        (2, 'Paint', 15.00, 3, '2023-01-11'),
         (3, 'Xcel', 36.25, 2, '2023-01-11'),
         (4, 'Video Game', 60.56, 3, '2023-01-11'),
         (5, 'Rent', 1723.24, 4, '2023-01-11'),
@@ -37,6 +44,17 @@ class MonthlyBudget < Minitest::Test
         (3, 'Personal'),
         (4, 'Housing');
       SQL
+    @db.exec(sql)
+  end
+
+  def add_test_budgets
+    sql = <<~SQL
+      INSERT INTO budgets (id, category_id, max_amount)
+        VALUES (1, 1, 100),
+        (2, 2, 80),
+        (3, 3, 100),
+        (4, 4, 1750);
+    SQL
     @db.exec(sql)
   end
 
@@ -77,7 +95,7 @@ class MonthlyBudget < Minitest::Test
     assert_equal 302, last_response.status
     assert_equal 'Successfully added expense.', session[:message]
 
-    get '/budget'
+    get last_response['Location']
     assert_includes last_response.body, 'Lunch | 12.06 | 2023-01-11 | Food'
   end
 
@@ -97,9 +115,6 @@ class MonthlyBudget < Minitest::Test
   end
 
   def test_view_all_expenses
-    add_test_categories
-    add_test_expenses
-
     get '/budget'
     refute_includes last_response.body, 'Dinner | 13.56 | 2023-01-10 | Food'
     
@@ -109,9 +124,6 @@ class MonthlyBudget < Minitest::Test
   end
 
   def test_render_edit_expense_page
-    add_test_categories
-    add_test_expenses
-
     get '/budget/expenses/1/edit'
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<h2>Editing Expense Lunch</h2>'
@@ -119,26 +131,48 @@ class MonthlyBudget < Minitest::Test
   end
 
   def test_edit_expense
-    add_test_categories
-    add_test_expenses
-
     post '/budget/expenses/1', { description: 'New Description', amount: '9.99', category: 'New Category', date: '2023-01-12' }
     assert_equal 302, last_response.status
     assert_equal 'Successfully updated expense.', session[:message]
 
-    get '/budget'
+    get last_response['Location']
     assert_includes last_response.body, 'New Description | 9.99 | 2023-01-12 | New category'
   end
 
   def test_delete_expense
-    add_test_categories
-    add_test_expenses
-
     post 'budget/expenses/1/destroy'
     assert_equal 302, last_response.status
     assert_equal 'The expense has been deleted successfully.', session[:message]
 
-    get '/budget'
-    refute_includes last_response.body, 'Lunch | 12.02 | 1 | Food'
+    get last_response['Location']
+    refute_includes last_response.body, 'Lunch | 12.02 | 2023-01-10 | Food'
+  end
+
+  def test_delete_category
+    post '/budget/categories/3/destroy'
+    assert_equal 302, last_response.status
+    assert_equal 'The category was successfully deleted.', session[:message]
+
+    get last_response['Location']
+    refute_includes last_response.body, 'Personal | 100.00 | 85.00'
+    assert_includes last_response.body, 'Paint | 15.00 | 2023-01-11 | Uncategorized'
+  end
+
+  def test_render_edit_category_page
+    get '/budget/categories/1/edit'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<h2>Editing Category: Food</h2>'
+    assert_includes last_response.body, %q(<input type="submit")
+  end
+
+  def test_edit_category_name
+    post '/budget/categories/1', { name: 'Meals', max_amount: 100 }
+    assert_equal 302, last_response.status
+    assert_equal 'Successfully updated category.', session[:message]
+
+    get last_response['Location']
+    refute_includes last_response.body, 'Food | 100.00 | 74.42'
+    assert_includes last_response.body, 'Meals | 100.00 | 74.42'
+    assert_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Meals'
   end
 end
