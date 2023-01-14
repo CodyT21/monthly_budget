@@ -3,6 +3,7 @@ SimpleCov.start
 
 require 'sinatra'
 require 'tilt/erubis'
+require 'date'
 
 require_relative 'database_persistance'
 
@@ -16,6 +17,25 @@ end
 configure(:development) do
   require 'sinatra/reloader'
   also_reload 'database_persistance.rb' if development?
+end
+
+helpers do
+  def current_month
+    months = { 1 => 'January',
+               2 => 'February',
+               3 => 'March',
+               4 => 'April',
+               5 => 'May',
+               6 => 'June',
+               7 => 'July',
+               8 => 'August',
+               9 => 'September',
+               10 => 'October',
+               11 => 'November',
+               12 => 'December' }
+    month_number = Date.today.month
+    months[month_number]
+  end
 end
 
 def error_for_expense(description, amount, category)

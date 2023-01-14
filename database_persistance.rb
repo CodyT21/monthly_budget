@@ -1,4 +1,5 @@
 require 'pg'
+require 'date'
 
 class DatabasePersistance
   def initialize(dbname, logger)
@@ -30,10 +31,11 @@ class DatabasePersistance
       SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
         FROM expenses e
         INNER JOIN categories c ON e.category_id = c.id
+        WHERE DATE_PART('month', expense_date) = $2
         ORDER BY e.expense_date DESC, e.id DESC
         LIMIT $1
     SQL
-    result = query(sql, limit)
+    result = query(sql, limit, Date.today.month)
 
     result.map do |tuple|
       tuple_to_hash_for_expense(tuple)
@@ -57,10 +59,14 @@ class DatabasePersistance
       SELECT categories.id, categories.name, budgets.max_amount
         FROM categories
         INNER JOIN budgets ON categories.id = budgets.category_id
-        WHERE category_id IN (SELECT category_id FROM expenses)
+        WHERE category_id IN (
+          SELECT category_id 
+          FROM expenses
+          WHERE DATE_PART('month', expense_date) = $1
+        )
         ORDER BY categories.name
     SQL
-    result = query(sql)
+    result = query(sql, Date.today.month)
 
     result.map do |tuple|
       amount_remaining_in_category = tuple['max_amount'].to_f - category_expenses_total(tuple['id'])
@@ -90,9 +96,9 @@ class DatabasePersistance
     sql = <<~SQL
       SELECT ROUND(SUM(amount), 2) AS "category_total"
         FROM expenses
-        WHERE category_id = $1
+        WHERE category_id = $1 AND DATE_PART('month', expense_date) = $2
     SQL
-    result = query(sql, category_id)
+    result = query(sql, category_id, Date.today.month)
     result.first['category_total'].to_f
   end
 
@@ -183,10 +189,16 @@ class DatabasePersistance
     query(sql, category_id, max_amount)
   end
 
-  def calculate_monthly_total
+  def find_expenses_total
+    sql = "SELECT SUM(amount) FROM expenses WHERE DATE_PART('month', expense_date) = $1"
+    result = query(sql, Date.today.month)
+    '%.2f' % result.first['sum']
   end
 
-  def calculate_yearly_total
+  def find_budgets_total
+    sql = "SELECT SUM(max_amount) FROM budgets"
+    result = query(sql)
+    '%.2f' % result.first['sum']
   end
 
   private

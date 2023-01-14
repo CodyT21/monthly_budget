@@ -1,7 +1,7 @@
 ENV['RACK_ENV'] = 'test'
 
 require 'minitest/autorun'
-require'rack/test'
+require 'rack/test'
 require 'pg'
 
 require_relative '../monthly_budget'
@@ -77,9 +77,9 @@ class MonthlyBudget < Minitest::Test
 
     get last_response['Location']
     assert_equal 200, last_response.status
-    assert_includes last_response.body, '<h2>Monthly Budget</h2>'
-    assert_includes last_response.body, '<h4>Budget Progress:</h4>'
-    assert_includes last_response.body, '<h4>Recent Expenses:</h4>'
+    assert_includes last_response.body, '<h1>Monthly Budget</h1>'
+    assert_includes last_response.body, '<h4>Monthly Budget Progress:</h4>'
+    assert_includes last_response.body, '<h4>Recent Monthly Expenses:</h4>'
     assert_includes last_response.body, '<button>View All Expenses</button>'
   end
 

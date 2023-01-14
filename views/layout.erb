@@ -8,6 +8,7 @@
     <% if session[:message] %>
       <p class="message"><%= session.delete(:message) %></p>
     <% end %>
+    <h1>Monthly Budget</h1>
     <main>
       <%== yield %>
     </main>
