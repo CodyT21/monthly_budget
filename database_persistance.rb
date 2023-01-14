@@ -196,8 +196,16 @@ class DatabasePersistance
   end
 
   def find_budgets_total
-    sql = "SELECT SUM(max_amount) FROM budgets"
-    result = query(sql)
+    sql = <<~SQL
+      SELECT SUM(max_amount) 
+        FROM budgets
+        WHERE category_id IN (
+          SELECT category_id
+            FROM expenses
+            WHERE DATE_PART('month', expense_date) = $1
+        )
+    SQL
+    result = query(sql, Date.today.month)
     '%.2f' % result.first['sum']
   end
 
