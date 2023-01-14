@@ -1,3 +1,6 @@
+require 'simplecov'
+SimpleCov.start
+
 require 'sinatra'
 require 'tilt/erubis'
 
@@ -59,6 +62,9 @@ end
 get '/budget' do
   @budgets = @storage.budget_amounts_remaining
   @expenses = @storage.last_n_expenses(5)
+  @total_spent = @storage.find_expenses_total
+  @total_budget_amount = @storage.find_budgets_total
+  @remaining_amount = '%.2f' % (@total_budget_amount.to_f - @total_spent.to_f)
   
   erb :budget
 end

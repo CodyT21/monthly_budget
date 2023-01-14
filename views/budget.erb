@@ -12,6 +12,10 @@
     </li>
   <% end %>
 </ul>
+<p>Total Spent: <%= @total_spent %></p>
+<p>Total Budgeted: <%= @total_budget_amount %></p>
+<p>Budget Remaining: <%= @remaining_amount %></p>
+
 <h4>Recent Expenses:</h4>
 <ul>
   <% @expenses.each do |expense| %>
