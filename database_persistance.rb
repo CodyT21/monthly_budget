@@ -60,14 +60,9 @@ class DatabasePersistance
     sql = <<~SQL
       SELECT id, name, max_amount
         FROM categories
-        WHERE id IN (
-          SELECT category_id 
-          FROM expenses
-          WHERE DATE_PART('month', expense_date) = $1
-        )
         ORDER BY name
     SQL
-    result = query(sql, CURRENT_DATE.month)
+    result = query(sql)
 
     result.map do |tuple|
       amount_remaining_in_category = tuple['max_amount'].to_f - category_expenses_total(tuple['id'])
