@@ -48,9 +48,11 @@ def error_for_expense(description, amount, category)
   end
 end
 
-def error_for_category(name, max_amount)
+def error_for_category(name, max_amount, new_category=true)
   if !valid_category_name(name)
     return 'Category name must be between 1 and 100 characters.'
+  elsif @storage.find_category_id(name) && new_category
+    return 'Category name already exists.'
   elsif !valid_amount?(max_amount)
     return 'Enter a valid amount between 0.00 and 9999.99.'
   end
@@ -83,7 +85,7 @@ get '/budget' do
   @budgets = @storage.category_amounts_remaining
   @expenses = @storage.last_n_expenses(5)
   @total_spent = @storage.find_expenses_total
-  @total_category_amount = @storage.find_categories_total
+  @total_budget_amount = @storage.find_categories_total
   @remaining_amount = '%.2f' % (@total_category_amount.to_f - @total_spent.to_f)
   
   erb :budget
@@ -188,7 +190,7 @@ post '/budget/categories/:category_id' do
   category_name = params[:name].strip
   max_amount = params[:max_amount].strip
 
-  error = error_for_category(category_name, max_amount)
+  error = error_for_category(category_name, max_amount, new_category=false)
   if error
     @category = @storage.find_category(category_id)
     session[:message] = error
@@ -201,3 +203,24 @@ post '/budget/categories/:category_id' do
   end
 end
     
+# render new category page
+get '/budget/categories/new' do
+  erb :new_category
+end
+
+# create new category
+post '/budget/categories' do
+  category_name = params[:name].strip
+  max_amount = params[:max_amount].strip
+
+  error = error_for_category(category_name, max_amount)
+  if error
+    session[:message] = error
+    erb :new_category
+  else
+    @storage.create_new_category(category_name, max_amount)
+    session[:message] = 'Successfully added category.'
+
+    redirect '/budget'
+  end
+end
