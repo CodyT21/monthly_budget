@@ -16,6 +16,8 @@
 <p>Total Budgeted: <%= @total_budget_amount %></p>
 <p>Budget Remaining: <%= @remaining_amount %></p>
 
+<a href='/budget/categories/new'><button>New Category</button></a>
+
 <h4>Recent Monthly Expenses:</h4>
 <ul>
   <% @expenses.each do |expense| %>

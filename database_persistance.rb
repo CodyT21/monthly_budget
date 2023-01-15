@@ -2,6 +2,8 @@ require 'pg'
 require 'date'
 
 class DatabasePersistance
+  CURRENT_DATE = Date.today
+  
   def initialize(dbname, logger)
     @db = PG.connect(dbname: dbname)
     @logger = logger
@@ -35,7 +37,7 @@ class DatabasePersistance
         ORDER BY e.expense_date DESC, e.id DESC
         LIMIT $1
     SQL
-    result = query(sql, limit, Date.today.month)
+    result = query(sql, limit, CURRENT_DATE.month)
 
     result.map do |tuple|
       tuple_to_hash_for_expense(tuple)
@@ -54,19 +56,18 @@ class DatabasePersistance
     tuple_to_hash_for_expense(result.first)
   end
 
-  def budget_amounts_remaining
+  def category_amounts_remaining
     sql = <<~SQL
-      SELECT categories.id, categories.name, budgets.max_amount
+      SELECT id, name, max_amount
         FROM categories
-        INNER JOIN budgets ON categories.id = budgets.category_id
-        WHERE category_id IN (
+        WHERE id IN (
           SELECT category_id 
           FROM expenses
           WHERE DATE_PART('month', expense_date) = $1
         )
-        ORDER BY categories.name
+        ORDER BY name
     SQL
-    result = query(sql, Date.today.month)
+    result = query(sql, CURRENT_DATE.month)
 
     result.map do |tuple|
       amount_remaining_in_category = tuple['max_amount'].to_f - category_expenses_total(tuple['id'])
@@ -77,18 +78,17 @@ class DatabasePersistance
     end
   end
 
-  def find_budget(category_id)
+  def find_category(category_id)
     sql = <<~SQL
-      SELECT categories.id, categories.name, budgets.max_amount
+      SELECT id, name, max_amount
         FROM categories
-        INNER JOIN budgets ON categories.id = budgets.category_id
-        WHERE category_id = $1
+        WHERE id = $1
     SQL
     result = query(sql, category_id)
 
     tuple = result.first
     { id: tuple['id'],
-      category: tuple['name'],
+      name: tuple['name'],
       max_amount: tuple['max_amount'] }
   end
 
@@ -98,7 +98,7 @@ class DatabasePersistance
         FROM expenses
         WHERE category_id = $1 AND DATE_PART('month', expense_date) = $2
     SQL
-    result = query(sql, category_id, Date.today.month)
+    result = query(sql, category_id, CURRENT_DATE.month)
     result.first['category_total'].to_f
   end
 
@@ -130,13 +130,11 @@ class DatabasePersistance
   def delete_bill(id)
   end
 
-  def create_new_category(name)
-    sql = "INSERT INTO categories (name) VALUES ($1)"
-    query(sql, name.capitalize)
+  def create_new_category(name, max_amount=0)
+    sql = "INSERT INTO categories (name, max_amount) VALUES ($1, $2)"
+    query(sql, capitalize_all_words(name), max_amount)
 
     category_id = find_category_id(name)
-    create_new_budget(category_id)
-
     category_id
   end
 
@@ -152,21 +150,10 @@ class DatabasePersistance
   def edit_category(id, name, max_amount)
     sql = <<~SQL
       UPDATE categories
-        SET name = $1
-        WHERE id = $2
+        SET name = $1, max_amount = $2
+        WHERE id = $3
     SQL
-    query(sql, name, id)
-
-    update_budget_amount(id, max_amount)
-  end
-
-  def update_budget_amount(category_id, max_amount)
-    sql = <<~SQL
-      UPDATE budgets
-        SET max_amount = $1
-        WHERE category_id = $2
-    SQL
-    query(sql, max_amount, category_id)
+    query(sql, name, max_amount, id)
   end
 
   def find_category_id(name)
@@ -175,37 +162,28 @@ class DatabasePersistance
     result.ntuples == 0 ? nil : result.first['id']
   end
 
-  def find_category(category_id)
-    sql = "SELECT * FROM categories WHERE id = $1"
-    result = query(sql, category_id)
-
-    result.map do |tuple|
-      { id: tuple['id'], name: tuple['name'] }
-    end
-  end
-
-  def create_new_budget(category_id, max_amount=0)
-    sql = "INSERT INTO budgets (category_id, max_amount) VALUES ($1, $2)"
-    query(sql, category_id, max_amount)
+  def create_new_category(name, max_amount=0)
+    sql = "INSERT INTO categories (name, max_amount) VALUES ($1, $2)"
+    query(sql, name, max_amount)
   end
 
   def find_expenses_total
     sql = "SELECT SUM(amount) FROM expenses WHERE DATE_PART('month', expense_date) = $1"
-    result = query(sql, Date.today.month)
+    result = query(sql, CURRENT_DATE.month)
     '%.2f' % result.first['sum']
   end
 
-  def find_budgets_total
+  def find_categories_total
     sql = <<~SQL
       SELECT SUM(max_amount) 
-        FROM budgets
-        WHERE category_id IN (
+        FROM categories
+        WHERE id IN (
           SELECT category_id
             FROM expenses
             WHERE DATE_PART('month', expense_date) = $1
         )
     SQL
-    result = query(sql, Date.today.month)
+    result = query(sql, CURRENT_DATE.month)
     '%.2f' % result.first['sum']
   end
 
@@ -237,5 +215,9 @@ class DatabasePersistance
         WHERE category_id = $2
     SQL
     query(sql, new_category_id, current_category_id)
+  end
+
+  def capitalize_all_words(text)
+    text.split.map(&:capitalize).join
   end
 end

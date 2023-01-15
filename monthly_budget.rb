@@ -80,11 +80,11 @@ get '/' do
 end
 
 get '/budget' do
-  @budgets = @storage.budget_amounts_remaining
+  @budgets = @storage.category_amounts_remaining
   @expenses = @storage.last_n_expenses(5)
   @total_spent = @storage.find_expenses_total
-  @total_budget_amount = @storage.find_budgets_total
-  @remaining_amount = '%.2f' % (@total_budget_amount.to_f - @total_spent.to_f)
+  @total_category_amount = @storage.find_categories_total
+  @remaining_amount = '%.2f' % (@total_category_amount.to_f - @total_spent.to_f)
   
   erb :budget
 end
@@ -147,16 +147,17 @@ post '/budget/expenses/:expense_id' do
   id = params[:expense_id].to_i
   description = params[:description].strip
   amount = params[:amount].strip
-  category = params[:category].strip
+  category_name = params[:category].strip
   date = params[:date].strip
 
-  error = error_for_expense(description, amount, category)
+  error = error_for_expense(description, amount, category_name)
   if error
     @expense = @storage.find_expense(id)
     session[:message] = error
     erb :edit_expense
   else
-    category_id = @storage.find_category_id(category) || @storage.create_new_category(category)
+    @storage.create_new_category(category_name) unless @storage.find_category_id(category_name)
+    category_id = @storage.find_category_id(category_name)
     @storage.edit_expense(id, description, amount, category_id, date)
     session[:message] = 'Successfully updated expense.'
 
@@ -176,7 +177,7 @@ end
 # render edit category page
 get '/budget/categories/:category_id/edit' do
   category_id = params[:category_id].to_i
-  @budget = @storage.find_budget(category_id)
+  @category = @storage.find_category(category_id)
 
   erb :edit_category
 end
@@ -189,7 +190,7 @@ post '/budget/categories/:category_id' do
 
   error = error_for_category(category_name, max_amount)
   if error
-    @budget = @storage.find_budget(category_id)
+    @category = @storage.find_category(category_id)
     session[:message] = error
     erb :edit_category
   else

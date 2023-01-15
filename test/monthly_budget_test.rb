@@ -10,7 +10,6 @@ class MonthlyBudget < Minitest::Test
   include Rack::Test::Methods
 
   def setup_test_database!
-    @db.exec('TRUNCATE budgets;')
     @db.exec('TRUNCATE expenses CASCADE;')
     @db.exec('TRUNCATE categories CASCADE;')
     @db.exec('TRUNCATE bills CASCADE;')
@@ -20,7 +19,6 @@ class MonthlyBudget < Minitest::Test
   def insert_test_data
     add_test_categories
     add_test_expenses
-    add_test_budgets
   end
 
   def add_test_expenses
@@ -38,23 +36,12 @@ class MonthlyBudget < Minitest::Test
 
   def add_test_categories
     sql = <<~SQL
-      INSERT INTO categories (id, name)
-        VALUES (1, 'Food'),
-        (2, 'Utilities'),
-        (3, 'Personal'),
-        (4, 'Housing');
+      INSERT INTO categories (id, name, max_amount)
+        VALUES (1, 'Food', 100),
+        (2, 'Utilities', 80),
+        (3, 'Personal', 100),
+        (4, 'Housing', 1750);
       SQL
-    @db.exec(sql)
-  end
-
-  def add_test_budgets
-    sql = <<~SQL
-      INSERT INTO budgets (id, category_id, max_amount)
-        VALUES (1, 1, 100),
-        (2, 2, 80),
-        (3, 3, 100),
-        (4, 4, 1750);
-    SQL
     @db.exec(sql)
   end
 
@@ -136,7 +123,7 @@ class MonthlyBudget < Minitest::Test
     assert_equal 'Successfully updated expense.', session[:message]
 
     get last_response['Location']
-    assert_includes last_response.body, 'New Description | 9.99 | 2023-01-12 | New category'
+    assert_includes last_response.body, 'New Description | 9.99 | 2023-01-12 | New Category'
   end
 
   def test_delete_expense
