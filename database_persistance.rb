@@ -28,6 +28,21 @@ class DatabasePersistance
     end
   end
 
+  def all_expenses_by_month(month)
+    sql = <<~SQL
+    SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
+      FROM expenses e
+      INNER JOIN categories c ON e.category_id = c.id
+      WHERE DATE_PART('month', e.expense_date) = $1
+      ORDER BY e.expense_date, e.id
+    SQL
+    result = query(sql, month)
+
+    result.map do |tuple|
+      tuple_to_hash_for_expense(tuple)
+    end
+  end
+
   def last_n_expenses(limit)
     sql = <<~SQL
       SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"

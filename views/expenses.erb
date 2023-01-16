@@ -1,4 +1,8 @@
 <h4>All Expenses:</h4>
+<% 1.upto(12) do |month| %>
+  <a href="/budget/expenses?month=<%= month %>"><button><%= month_to_string(month) %></button></a>
+<% end %>
+<a href="/budget/expenses"><button>Reset</button></a>
 <ul>
   <% @expenses.each do |expense| %>
     <li>

@@ -20,21 +20,26 @@ configure(:development) do
 end
 
 helpers do
+  MONTHS = { 1 => 'January',
+             2 => 'February',
+             3 => 'March',
+             4 => 'April',
+             5 => 'May',
+             6 => 'June',
+             7 => 'July',
+             8 => 'August',
+             9 => 'September',
+             10 => 'October',
+             11 => 'November',
+             12 => 'December' }
+
   def current_month
-    months = { 1 => 'January',
-               2 => 'February',
-               3 => 'March',
-               4 => 'April',
-               5 => 'May',
-               6 => 'June',
-               7 => 'July',
-               8 => 'August',
-               9 => 'September',
-               10 => 'October',
-               11 => 'November',
-               12 => 'December' }
     month_number = Date.today.month
-    months[month_number]
+    MONTHS[month_number]
+  end
+
+  def month_to_string(month_num)
+    MONTHS[month_num]
   end
 end
 
@@ -95,7 +100,20 @@ end
 
 # display all expenses
 get '/budget/expenses' do
-  @expenses = @storage.all_expenses
+  if params[:month]
+    month = params[:month].strip
+    @expenses = @storage.all_expenses_by_month(month)
+  else
+    @expenses = @storage.all_expenses
+  end
+
+  erb :expenses
+end
+
+# display expenses by month
+get '/budget/expenses?month=:month' do
+  month = params[:month].strip
+  @expenses = @storage.all_expenses_by_month(month)
 
   erb :expenses
 end
