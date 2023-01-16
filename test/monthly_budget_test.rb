@@ -183,4 +183,36 @@ class MonthlyBudget < Minitest::Test
     refute_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Food'
     assert_includes last_response.body, 'Lunch | 10.00 | 2023-03-01 | Food'
   end
+
+  def test_render_new_category_page
+    get '/budget/categories/new'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<h2>Create New Budget Category</h2>'
+    assert_includes last_response.body, %q(<input type="submit")
+  end
+
+  def test_non_unique_new_category_name
+    post '/budget/categories', { name: 'Food', max_amount: '100.00' }
+    assert_includes last_response.body, 'Category name already exists.'
+  end
+
+  def test_invalid_new_category_name
+    post '/budget/categories', { name: '', max_amount: '100.00' }
+    assert_includes last_response.body, 'Category name must be between 1 and 100 characters.'
+  end
+
+  def test_invalid_new_category_amount
+    post '/budget/categories', { name: 'New Category', max_amount: 'amount' }
+    assert_includes last_response.body, 'Enter a valid amount between 0.00 and 9999.99.'
+  end
+
+  def test_new_category
+    post '/budget/categories', { name: 'New Category', max_amount: '200.00' }
+    assert_equal 302, last_response.status
+    assert_equal 'Successfully added category.', session[:message]
+
+    get last_response['Location']
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'New Category | 200.00 | 200.00'
+  end
 end
