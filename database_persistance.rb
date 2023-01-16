@@ -177,6 +177,26 @@ class DatabasePersistance
     '%.2f' % result.first['sum']
   end
 
+  def monthly_total
+    sql = <<~SQL
+      SELECT SUM(amount)
+        FROM expenses
+        WHERE DATE_PART('month', expense_date) = $1
+    SQL
+    result = query(sql, CURRENT_DATE.month)
+    '%.2f' % result.first['sum']
+  end
+
+  def year_to_date_total
+    sql = <<~SQL
+      SELECT SUM(amount)
+        FROM expenses
+        WHERE DATE_PART('year', expense_date) = $1
+    SQL
+    result = query(sql, CURRENT_DATE.year)
+    '%.2f' % result.first['sum']
+  end
+
   private
 
   def tuple_to_hash_for_expense(tuple)

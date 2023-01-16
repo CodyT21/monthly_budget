@@ -87,6 +87,8 @@ get '/budget' do
   @total_spent = @storage.find_expenses_total
   @total_budget_amount = @storage.find_categories_total
   @remaining_amount = '%.2f' % (@total_category_amount.to_f - @total_spent.to_f)
+  @monthly_total = @storage.monthly_total
+  @year_to_date_total = @storage.year_to_date_total
   
   erb :budget
 end
