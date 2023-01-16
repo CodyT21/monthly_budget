@@ -45,6 +45,14 @@ class MonthlyBudget < Minitest::Test
     @db.exec(sql)
   end
 
+  def add_new_expense(description, amount, category_id, date)
+    sql = <<~SQL
+      INSERT INTO expenses (description, amount, category_id, expense_date)
+        VALUES ($1, $2, $3, $4)
+    SQL
+    @db.exec_params(sql, [description, amount, category_id, date])
+  end
+
   def setup
     @db = PG.connect(dbname: 'budget_test')
     setup_test_database!
@@ -161,5 +169,18 @@ class MonthlyBudget < Minitest::Test
     refute_includes last_response.body, 'Food | 100.00 | 74.42'
     assert_includes last_response.body, 'Meals | 100.00 | 74.42'
     assert_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Meals'
+  end
+
+  def test_view_all_expenses_by_month
+    add_new_expense('Lunch', 10.00, 1, '2023-03-01')
+    
+    get '/budget/expenses'
+    assert_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Food'
+    assert_includes last_response.body, 'Lunch | 10.00 | 2023-03-01 | Food'
+    assert_includes last_response.body, '<button>January</button>'
+    
+    get '/budget/expenses?month=3'
+    refute_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Food'
+    assert_includes last_response.body, 'Lunch | 10.00 | 2023-03-01 | Food'
   end
 end
