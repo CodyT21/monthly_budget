@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     backports (3.23.0)
+    docile (1.4.0)
     erubis (2.7.0)
     minitest (5.17.0)
     multi_json (1.15.0)
@@ -11,6 +12,12 @@ GEM
       rack
     rack-test (2.0.2)
       rack (>= 1.3)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-html (0.12.3)
+    simplecov_json_formatter (0.1.4)
     sinatra (1.4.8)
       rack (~> 1.5)
       rack-protection (~> 1.4)
@@ -32,6 +39,7 @@ DEPENDENCIES
   minitest
   pg
   rack-test
+  simplecov
   sinatra (~> 1.4.7)
   sinatra-contrib
 
