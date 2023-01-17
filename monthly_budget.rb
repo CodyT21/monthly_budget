@@ -111,14 +111,6 @@ get '/budget/expenses' do
   erb :expenses
 end
 
-# display expenses by month
-get '/budget/expenses?month=:month' do
-  month = params[:month].strip
-  @expenses = @storage.all_expenses_by_month(month)
-
-  erb :expenses
-end
-
 # display new expense form
 get '/budget/expenses/new' do
   erb :new_expense
