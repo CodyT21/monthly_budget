@@ -16,3 +16,8 @@
 </ul>
 
 <a href="/budget"><button>Return to Home</button></a>
+
+<% content_for :footer_links do %>
+  <a href='/budget/expenses'><button>View All Expenses</button></a>
+  <a href='/budget/expenses/new'><button>Add an Expense</button></a>
+<% end %>

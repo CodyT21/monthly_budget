@@ -4,6 +4,7 @@ SimpleCov.start
 require 'sinatra'
 require 'tilt/erubis'
 require 'date'
+require 'sinatra/content_for'
 
 require_relative 'database_persistance'
 

@@ -1,6 +1,7 @@
 <h2>Budget for <%= current_month %></h2>
 <h4>Monthly Budget Progress:</h4>
 <ul>
+  <li><p>Category | Budgeted Amount | Amount Remaining</p></li>
   <% @budgets.each do |budget| %>
     <li>
       <% if budget[:category] == 'Uncategorized' %>
@@ -20,6 +21,7 @@
 
 <h4>Recent Monthly Expenses:</h4>
 <ul>
+  <li><p>Description | Amount | Expense Date | Category</p></li>
   <% @expenses.each do |expense| %>
     <li>
       <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
@@ -32,16 +34,10 @@
 </ul>
 
 <h4>Totals:</h4>
-<p>Monthly Total: <%= @monthly_total %></p>
-<p>Year-to-date Total: <%= @year_to_date_total %></p>
+<p>Monthly Expense Totals: <%= @monthly_total %></p>
+<p>Year-to-Date Expense Total: <%= @year_to_date_total %></p>
 
-<div>
+<% content_for :footer_links do %>
   <a href='/budget/expenses'><button>View All Expenses</button></a>
-</div>
-<div>
   <a href='/budget/expenses/new'><button>Add an Expense</button></a>
-</div>
-<div>
-  <button>Create a New Budget</button>
-  <button>Edit a Current Budget</button>
-</div>
+<% end %>
