@@ -42,6 +42,11 @@ helpers do
   def month_to_string(month_num)
     MONTHS[month_num]
   end
+
+  def category_options
+    categories = @storage.all_categories
+    categories.each { |category| yield(category) }
+  end
 end
 
 def error_for_expense(description, amount, category)

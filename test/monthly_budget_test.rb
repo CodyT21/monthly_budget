@@ -188,6 +188,7 @@ class MonthlyBudget < Minitest::Test
     get '/budget/categories/new'
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<h2>Create New Budget Category</h2>'
+    assert_includes last_response.body, %q(<option value="Food")
     assert_includes last_response.body, %q(<input type="submit")
   end
 

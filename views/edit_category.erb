@@ -3,7 +3,12 @@
   <dl>
     <dd>
       <label for="name">Category Name:</label>
-      <input name="name" type="text" value="<%= @category[:name] %>">
+      <input name="name" type="text" list="categories" value="<%= @category[:name] %>">
+      <datalist id="categories">
+        <% category_options do |category| %>
+          <option value="<%= category %>">
+        <% end %>
+      </datalist>
     </dd>
     <dd>
       <label for="max_amount">Max Amount:</label>

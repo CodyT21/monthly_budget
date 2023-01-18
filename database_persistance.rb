@@ -71,6 +71,12 @@ class DatabasePersistance
     tuple_to_hash_for_expense(result.first)
   end
 
+  def all_categories
+    sql = "SELECT name FROM categories"
+    result = query(sql)
+    result.map { |tuple| tuple['name'] }
+  end
+  
   def category_amounts_remaining
     sql = <<~SQL
       SELECT id, name, max_amount
