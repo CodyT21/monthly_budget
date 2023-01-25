@@ -1,43 +1,78 @@
 <h2>Budget for <%= current_month %></h2>
-<h4>Monthly Budget Progress:</h4>
-<ul>
-  <li><p>Category | Budgeted Amount | Amount Remaining</p></li>
+<h3>Monthly Budget Progress</h3>
+<table>
+  <tr>
+    <td>Category</td>
+    <td>Budgeted Amount</td>
+    <td>Amount Remaining</td>
+  </tr>
   <% @budgets.each do |budget| %>
-    <li>
+    <tr>
       <% if budget[:category] == 'Uncategorized' %>
-        <p><%= budget[:category] %> | <%= budget[:amount_remaining] %></p>
+        <td><%= budget[:category] %></td>
+        <td><%= budget[:amount_remaining] %></td>
       <% else %>  
-        <p style="display: inline;"><%= budget[:category] %> | <%= budget[:max_amount] %> | <%= budget[:amount_remaining] %></p>
-        <a href="/budget/categories/<%= budget[:id] %>/edit" style="display: inline;"><button>Edit Category</button></a>
+        <td><%= budget[:category] %></td>
+        <td><%= budget[:max_amount] %></td>
+        <td><%= budget[:amount_remaining] %></td>
+        <td><a href="/budget/categories/<%= budget[:id] %>/edit" style="display: inline;"><button>Edit Category</button></a></td>
       <% end %>
-    </li>
+    </tr>
   <% end %>
-</ul>
-<p>Total Spent: <%= @total_spent %></p>
-<p>Total Budgeted: <%= @total_budget_amount %></p>
-<p>Budget Remaining: <%= @remaining_amount %></p>
+</table>
+<table>
+  <tr>
+    <td>Total Spent</td>
+    <td>Total Budgeted</td>
+    <td>Remaining Budget</td>
+  </tr>
+  <tr>
+    <td><%= @total_spent %></td>
+    <td><%= @total_budget_amount %></td>
+    <td><%= @remaining_amount %></td>
+  </tr>
+</table>
 
 <a href='/budget/categories/new'><button>New Category</button></a>
 
-<h4>Recent Monthly Expenses:</h4>
-<ul>
-  <li><p>Description | Amount | Expense Date | Category</p></li>
-  <% @expenses.each do |expense| %>
-    <li>
-      <p style="display: inline;"><%= expense[:description] %> | <%= expense[:amount] %> | <%= expense[:date] %> | <%= expense[:category] %></p>
-      <a href="/budget/expenses/<%= expense[:id] %>/edit" style="display: inline;"><button>Edit</button></a>
-      <form action="/budget/expenses/<%= expense[:id] %>/destroy" method="post" style="display: inline;">
-        <input type="submit" value="Delete">
-      </form>
-    </li>
+<h3>Recent Monthly Transactions</h3>
+<table>
+  <tr>
+    <td>Description</td>
+    <td>Amount</td>
+    <td>Date</td>
+    <td>Category</td>
+  </tr>
+  <% @transactions.each do |transaction| %>
+    <tr>
+      <td><%= transaction[:description] %></td>
+      <td><%= transaction[:amount] %></td>
+      <td><%= transaction[:date] %></td>
+      <td><%= transaction[:category] %></td>
+      <td><a href="/budget/ransactions/<%= transaction[:id] %>/edit" style="display: inline;"><button>Edit</button></a></td>
+      <td>
+        <form action="/budget/transactions/<%= transaction[:id] %>/destroy" method="post" style="display: inline;">
+          <input type="submit" value="Delete">
+        </form>
+      </td>
+    </tr>
   <% end %>
-</ul>
+</table>
 
-<h4>Totals:</h4>
-<p>Monthly Expense Totals: <%= @monthly_total %></p>
-<p>Year-to-Date Expense Total: <%= @year_to_date_total %></p>
+<h3>Net Totals</h3>
+<table>
+  <tr>
+    <td>Monthly</td>
+    <td>Year-To-Date</td>
+    <td>All-Time</td>
+  </tr>
+  <tr>
+    <td><%= @monthly_total %></td>
+    <td><%= @year_to_date_total %></td>
+  </tr>
+</table>
 
 <% content_for :footer_links do %>
-  <a href='/budget/expenses'><button>View All Expenses</button></a>
-  <a href='/budget/expenses/new'><button>Add an Expense</button></a>
+  <a href='/budget/transactions'><button>View All Transactions</button></a>
+  <a href='/budget/transactions/new'><button>Add an Transaction</button></a>
 <% end %>
