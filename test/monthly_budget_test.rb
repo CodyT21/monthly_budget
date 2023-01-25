@@ -10,7 +10,7 @@ class MonthlyBudget < Minitest::Test
   include Rack::Test::Methods
 
   def setup_test_database!
-    @db.exec('TRUNCATE expenses CASCADE;')
+    @db.exec('TRUNCATE transactions CASCADE;')
     @db.exec('TRUNCATE categories CASCADE;')
     @db.exec('TRUNCATE bills CASCADE;')
     insert_test_data
@@ -18,12 +18,12 @@ class MonthlyBudget < Minitest::Test
 
   def insert_test_data
     add_test_categories
-    add_test_expenses
+    add_test_transactions
   end
 
-  def add_test_expenses
+  def add_test_transactions
     sql = <<~SQL
-      INSERT INTO expenses(id, description, amount, category_id, expense_date)
+      INSERT INTO transactions(id, description, amount, category_id, transaction_date)
         VALUES (1, 'Lunch', 12.02, 1, '2023-01-11'),
         (2, 'Paint', 15.00, 3, '2023-01-11'),
         (3, 'Xcel', 36.25, 2, '2023-01-11'),
@@ -40,21 +40,22 @@ class MonthlyBudget < Minitest::Test
         VALUES (1, 'Food', 100),
         (2, 'Utilities', 80),
         (3, 'Personal', 100),
-        (4, 'Housing', 1750);
+        (4, 'Housing', 1750),
+        (5, 'Test', 0.00);
       SQL
     @db.exec(sql)
   end
 
-  def add_new_expense(description, amount, category_id, date)
+  def add_new_transaction(description, amount, category_id, date)
     sql = <<~SQL
-      INSERT INTO expenses (description, amount, category_id, expense_date)
+      INSERT INTO transactions (description, amount, category_id, transaction_date)
         VALUES ($1, $2, $3, $4)
     SQL
     @db.exec_params(sql, [description, amount, category_id, date])
   end
 
   def setup
-    @db = PG.connect(dbname: 'budget_test')
+    @db = PG.connect(dbname: 'budgets_test')
     setup_test_database!
   end
 
@@ -73,74 +74,84 @@ class MonthlyBudget < Minitest::Test
     get last_response['Location']
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<h1>Monthly Budget</h1>'
-    assert_includes last_response.body, '<h4>Monthly Budget Progress:</h4>'
-    assert_includes last_response.body, '<h4>Recent Monthly Expenses:</h4>'
-    assert_includes last_response.body, '<button>View All Expenses</button>'
+    assert_includes last_response.body, '<h3>Monthly Budget Progress</h3>'
+    assert_includes last_response.body, '<h3>Recent Monthly Transactions</h3>'
+    assert_includes last_response.body, '<h3>Net Totals</h3>'
+    assert_includes last_response.body, '<button>View All Transactions</button>'
   end
 
-  def test_render_add_expense
-    get '/budget/expenses/new'
+  def test_render_add_transaction
+    get '/budget/transactions/new'
     assert_equal 200, last_response.status
-    assert_includes last_response.body, '<h2>Add New Expense</h2>'
+    assert_includes last_response.body, '<h2>Add New Transaction</h2>'
     assert_includes last_response.body, %q(<input type="submit")
   end
 
-  def test_add_expense
-    post '/budget/expenses', { description: 'Lunch', amount: '12.06', category: 'Food', date: '2023-01-11' }
+  def test_add_transaction
+    post '/budget/transactions', { description: 'New Expense', amount: '99.99', category: 'Test', date: '2023-01-30' }
     assert_equal 302, last_response.status
-    assert_equal 'Successfully added expense.', session[:message]
+    assert_equal 'Successfully added transaction.', session[:message]
 
     get last_response['Location']
-    assert_includes last_response.body, 'Lunch | 12.06 | 2023-01-11 | Food'
+    assert_includes last_response.body, '<td>New Expense</td>'
+    assert_includes last_response.body, '<td>99.99</td>'
+    assert_includes last_response.body, '<td>2023-01-30</td>'
+    assert_includes last_response.body, '<td>Test</td>'
   end
 
-  def test_invalid_expense_description
-    post '/budget/expenses', { description: '', amount: '0', category: 'Uncategorized', date: '2023-01-11' }
-    assert_includes last_response.body, 'Expense description must be between 1 and 255 characters.'
+  def test_invalid_transaction_description
+    post '/budget/transactions', { description: '', amount: '0', category: 'Uncategorized', date: '2023-01-11' }
+    assert_includes last_response.body, 'Transaction description must be between 1 and 255 characters.'
   end
 
-  def test_invalid_expense_amount
-    post '/budget/expenses', { description: 'Lunch', amount: 'Ten', category: 'Uncategorized', date: '2023-01-11' }
+  def test_invalid_transaction_amount
+    post '/budget/transactions', { description: 'Lunch', amount: 'Ten', category: 'Uncategorized', date: '2023-01-11' }
     assert_includes last_response.body, 'Enter a valid amount between 0.00 and 9999.99.'
   end
 
-  def test_invalid_expense_category
-    post '/budget/expenses', { description: 'Lunch', amount: '0', category: '', date: '2023-01-11' }
+  def test_invalid_transaction_category
+    post '/budget/transactions', { description: 'Lunch', amount: '0', category: '', date: '2023-01-11' }
     assert_includes last_response.body, 'Category name must be between 1 and 100 characters.'
   end
 
-  def test_view_all_expenses
+  def test_view_all_transactions
     get '/budget'
-    refute_includes last_response.body, 'Dinner | 13.56 | 2023-01-10 | Food'
+    refute_includes last_response.body, '<td>New Description</td>'
+    refute_includes last_response.body, '<td>New Category</td>'
     
-    get '/budget/expenses'
+    get '/budget/transactions'
     assert_equal 200, last_response.status
-    assert_includes last_response.body, 'Dinner | 13.56 | 2023-01-10 | Food'
+    assert_includes last_response.body, '<td>Dinner</td>'
+    assert_includes last_response.body, '<td>13.56</td>'
+    assert_includes last_response.body, '<td>2023-01-10</td>'
+    assert_includes last_response.body, '<td>Food</td>'
   end
 
-  def test_render_edit_expense_page
-    get '/budget/expenses/1/edit'
+  def test_render_edit_transaction_page
+    get '/budget/transactions/1/edit'
     assert_equal 200, last_response.status
-    assert_includes last_response.body, '<h2>Editing Expense Lunch</h2>'
+    assert_includes last_response.body, '<h2>Editing Transaction Lunch</h2>'
     assert_includes last_response.body, %q(<input type="submit")
   end
 
-  def test_edit_expense
-    post '/budget/expenses/1', { description: 'New Description', amount: '9.99', category: 'New Category', date: '2023-01-12' }
+  def test_edit_transaction
+    post '/budget/transactions/1', { description: 'New Description', amount: '9.99', category: 'New Category', date: '2023-01-12' }
     assert_equal 302, last_response.status
-    assert_equal 'Successfully updated expense.', session[:message]
+    assert_equal 'Successfully updated transaction.', session[:message]
 
     get last_response['Location']
-    assert_includes last_response.body, 'New Description | 9.99 | 2023-01-12 | New Category'
+    assert_includes last_response.body, '<td>New Description</td>'
+    assert_includes last_response.body, '<td>New Category</td>'
   end
 
-  def test_delete_expense
-    post 'budget/expenses/1/destroy'
+  def test_delete_transaction
+    post 'budget/transactions/1/destroy'
     assert_equal 302, last_response.status
-    assert_equal 'The expense has been deleted successfully.', session[:message]
+    assert_equal 'The transaction has been deleted successfully.', session[:message]
 
     get last_response['Location']
-    refute_includes last_response.body, 'Lunch | 12.02 | 2023-01-10 | Food'
+    refute_includes last_response.body, '<td>Lunch</td>'
+    refute_includes last_response.body, '<td>12.02</td>'
   end
 
   def test_delete_category
@@ -149,8 +160,12 @@ class MonthlyBudget < Minitest::Test
     assert_equal 'The category was successfully deleted.', session[:message]
 
     get last_response['Location']
-    refute_includes last_response.body, 'Personal | 100.00 | 85.00'
-    assert_includes last_response.body, 'Paint | 15.00 | 2023-01-11 | Uncategorized'
+    refute_includes last_response.body, '<td>Personal</td>'
+
+    assert_includes last_response.body, '<td>Paint</td>'
+    assert_includes last_response.body, '<td>15.00</td>'
+    assert_includes last_response.body, '<td>2023-01-11</td>'
+    assert_includes last_response.body, '<td>Uncategorized</td>'
   end
 
   def test_render_edit_category_page
@@ -166,29 +181,40 @@ class MonthlyBudget < Minitest::Test
     assert_equal 'Successfully updated category.', session[:message]
 
     get last_response['Location']
-    refute_includes last_response.body, 'Food | 100.00 | 74.42'
-    assert_includes last_response.body, 'Meals | 100.00 | 74.42'
-    assert_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Meals'
+    refute_includes last_response.body, '<td>Food</td>'
+
+    assert_includes last_response.body, '<td>Meals</td>'
+    assert_includes last_response.body, '<td>100.00</td>'
+    assert_includes last_response.body, '<td>74.42</td>'
   end
 
-  def test_view_all_expenses_by_month
-    add_new_expense('Lunch', 10.00, 1, '2023-03-01')
+  def test_view_all_transactions_by_month
+    add_new_transaction('March Expense', 10.00, 1, '2023-03-01')
     
-    get '/budget/expenses'
-    assert_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Food'
-    assert_includes last_response.body, 'Lunch | 10.00 | 2023-03-01 | Food'
+    get '/budget/transactions'
+    assert_includes last_response.body, '<td>Lunch</td>'
+    assert_includes last_response.body, '<td>12.02</td>'
+    assert_includes last_response.body, '<td>2023-01-11</td>'
+    assert_includes last_response.body, '<td>Food</td>'
+
+    assert_includes last_response.body, '<td>March Expense</td>'
+    assert_includes last_response.body, '<td>10.00</td>'
+    assert_includes last_response.body, '<td>2023-03-01</td>'
+    assert_includes last_response.body, '<td>Food</td>'
+
     assert_includes last_response.body, '<button>January</button>'
     
-    get '/budget/expenses?month=3'
-    refute_includes last_response.body, 'Lunch | 12.02 | 2023-01-11 | Food'
-    assert_includes last_response.body, 'Lunch | 10.00 | 2023-03-01 | Food'
+    get '/budget/transactions?month=3'
+    refute_includes last_response.body, '<td>Lunch</td>'
+    refute_includes last_response.body, '<td>12.02</td>'
+
+    assert_includes last_response.body, '<td>March Expense</td>'
   end
 
   def test_render_new_category_page
     get '/budget/categories/new'
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<h2>Create New Budget Category</h2>'
-    assert_includes last_response.body, %q(<option value="Food")
     assert_includes last_response.body, %q(<input type="submit")
   end
 
@@ -214,6 +240,8 @@ class MonthlyBudget < Minitest::Test
 
     get last_response['Location']
     assert_equal 200, last_response.status
-    assert_includes last_response.body, 'New Category | 200.00 | 200.00'
+    assert_includes last_response.body, '<td>New Category</td>'
+    assert_includes last_response.body, '<td>200.00</td>'
+    assert_includes last_response.body, '<td>200.00</td>'
   end
 end
