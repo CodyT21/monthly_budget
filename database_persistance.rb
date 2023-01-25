@@ -1,80 +1,73 @@
-require 'pg'
 require 'date'
 
+require_relative 'database_connection'
+
 class DatabasePersistance
+  include DatabaseConnection
+
   CURRENT_DATE = Date.today
-  
-  def initialize(dbname, logger)
-    @db = PG.connect(dbname: dbname)
-    @logger = logger
-  end
 
-  def query(statement, *params)
-    @logger.info("#{statement}: #{params}")
-    @db.exec_params(statement, params)
-  end
-
-  def all_expenses
+  def all_transactions
     sql = <<~SQL
-      SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
-        FROM expenses e
-        INNER JOIN categories c ON e.category_id = c.id
-        ORDER BY e.expense_date, e.id
+      SELECT t.id, t.description, t.amount, t.transaction_date, c.name AS "category_name"
+        FROM transactions t
+        INNER JOIN categories c ON t.category_id = c.id
+        ORDER BY t.transaction_date, t.id
     SQL
     result = query(sql)
 
     result.map do |tuple|
-      tuple_to_hash_for_expense(tuple)
+      tuple_to_hash_for_transaction(tuple)
     end
   end
 
-  def all_expenses_by_month(month)
+  def all_transactions_by_month(month)
     sql = <<~SQL
-    SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
-      FROM expenses e
-      INNER JOIN categories c ON e.category_id = c.id
-      WHERE DATE_PART('month', e.expense_date) = $1
-      ORDER BY e.expense_date, e.id
+    SELECT t.id, t.description, t.amount, t.transaction_date, c.name AS "category_name"
+      FROM transactions t
+      INNER JOIN categories c ON t.category_id = c.id
+      WHERE DATE_PART('month', t.transaction_date) = $1
+      ORDER BY t.transaction_date, t.id
     SQL
     result = query(sql, month)
 
     result.map do |tuple|
-      tuple_to_hash_for_expense(tuple)
+      tuple_to_hash_for_transaction(tuple)
     end
   end
 
-  def last_n_expenses(limit)
+  def last_n_transactions(limit)
     sql = <<~SQL
-      SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
-        FROM expenses e
-        INNER JOIN categories c ON e.category_id = c.id
-        WHERE DATE_PART('month', expense_date) = $2
-        ORDER BY e.expense_date DESC, e.id DESC
+      SELECT t.id, t.description, t.amount, t.transaction_date, c.name AS "category_name"
+        FROM transactions t
+        INNER JOIN categories c ON t.category_id = c.id
+        WHERE DATE_PART('month', transaction_date) = $2
+        ORDER BY t.transaction_date DESC, t.id DESC
         LIMIT $1
     SQL
     result = query(sql, limit, CURRENT_DATE.month)
 
     result.map do |tuple|
-      tuple_to_hash_for_expense(tuple)
+      tuple_to_hash_for_transaction(tuple)
     end
   end
 
-  def find_expense(id)
+  def find_transaction(id)
     sql = <<~SQL
-      SELECT e.id, e.description, e.amount, e.expense_date, c.name AS "category_name"
-        FROM expenses e
-        INNER JOIN categories c ON e.category_id = c.id
-        WHERE e.id = $1
+      SELECT t.id, t.description, t.amount, t.transaction_date, c.name AS "category_name"
+        FROM transactions t
+        INNER JOIN categories c ON t.category_id = c.id
+        WHERE t.id = $1
     SQL
     result = query(sql, id)
 
-    tuple_to_hash_for_expense(result.first)
+    tuple_to_hash_for_transaction(result.first)
   end
 
   def all_categories
     sql = "SELECT name FROM categories"
     result = query(sql)
-    result.map { |tuple| tuple['name'] }
+    result.map { |tuple| capitalize_all_words(tuple['name']) }
   end
   
   def category_amounts_remaining
@@ -86,7 +79,7 @@ class DatabasePersistance
     result = query(sql)
 
     result.map do |tuple|
-      amount_remaining_in_category = tuple['max_amount'].to_f - category_expenses_total(tuple['id'])
+      amount_remaining_in_category = tuple['max_amount'].to_f - category_transactions_total(tuple['id'])
       { id: tuple['id'],
         category: tuple['name'],
         max_amount: tuple['max_amount'],
@@ -108,33 +101,33 @@ class DatabasePersistance
       max_amount: tuple['max_amount'] }
   end
 
-  def category_expenses_total(category_id)
+  def category_transactions_total(category_id)
     sql = <<~SQL
       SELECT ROUND(SUM(amount), 2) AS "category_total"
-        FROM expenses
-        WHERE category_id = $1 AND DATE_PART('month', expense_date) = $2
+        FROM transactions
+        WHERE category_id = $1 AND DATE_PART('month', transaction_date) = $2
     SQL
     result = query(sql, category_id, CURRENT_DATE.month)
     result.first['category_total'].to_f
   end
 
-  def add_new_expense(description, amount, category_id, date)
+  def add_new_transaction(description, amount, category_id, date)
     sql = <<~SQL
-      INSERT INTO expenses (description, amount, category_id, expense_date)
+      INSERT INTO transactions (description, amount, category_id, transaction_date)
         VALUES ($1, $2, $3, $4)
     SQL
     query(sql, description, amount, category_id, date)
   end
 
-  def delete_expense(id)
-    sql = "DELETE FROM expenses WHERE id = $1"
+  def delete_transaction(id)
+    sql = "DELETE FROM transactions WHERE id = $1"
     query(sql, id)
   end
 
-  def edit_expense(id, description, amount, category_id, date)
+  def edit_transaction(id, description, amount, category_id, date)
     sql = <<~SQL
-      UPDATE expenses
-        SET description = $1, amount = $2, category_id = $3, expense_date = $4
+      UPDATE transactions
+        SET description = $1, amount = $2, category_id = $3, transaction_date = $4
         WHERE id = $5
     SQL
     query(sql, description, amount, category_id, date, id)
@@ -147,6 +140,7 @@ class DatabasePersistance
   end
 
   def create_new_category(name, max_amount=0)
+    name = capitalize_all_words(name)
     sql = "INSERT INTO categories (name, max_amount) VALUES ($1, $2)"
     query(sql, capitalize_all_words(name), max_amount)
 
@@ -157,7 +151,7 @@ class DatabasePersistance
   def delete_category(category_id)
     add_uncategorized_to_categories if uncategorized?
     uncategorized_id = find_category_id('Uncategorized')
-    update_expense_categories(category_id, uncategorized_id)
+    update_transaction_categories(category_id, uncategorized_id)
     
     sql = "DELETE FROM categories WHERE id = $1"
     query(sql, category_id)
@@ -173,20 +167,16 @@ class DatabasePersistance
   end
 
   def find_category_id(name)
-    sql = "SELECT id FROM categories WHERE name ILIKE $1"
-    result = query(sql, name)
+    sql = "SELECT id FROM categories WHERE name LIKE $1"
+    result = query(sql, capitalize_all_words(name))
     result.ntuples == 0 ? nil : result.first['id']
   end
 
-  def create_new_category(name, max_amount=0)
-    sql = "INSERT INTO categories (name, max_amount) VALUES ($1, $2)"
-    query(sql, name, max_amount)
-  end
-
-  def find_expenses_total
-    sql = "SELECT SUM(amount) FROM expenses WHERE DATE_PART('month', expense_date) = $1"
+  def find_transactions_total
+    sql = "SELECT SUM(amount) FROM transactions WHERE DATE_PART('month', transaction_date) = $1"
     result = query(sql, CURRENT_DATE.month)
-    '%.2f' % result.first['sum']
+    total = result.first['sum']
+    total ? '%.2f' % total : '0.00'
   end
 
   def find_categories_total
@@ -195,36 +185,42 @@ class DatabasePersistance
         FROM categories
     SQL
     result = query(sql)
-    '%.2f' % result.first['sum']
+
+    total = result.first['sum']
+    total ? '%.2f' % total : '0.00'
   end
 
   def monthly_total
     sql = <<~SQL
       SELECT SUM(amount)
-        FROM expenses
-        WHERE DATE_PART('month', expense_date) = $1
+        FROM transactions
+        WHERE DATE_PART('month', transaction_date) = $1
     SQL
     result = query(sql, CURRENT_DATE.month)
-    '%.2f' % result.first['sum']
+    
+    total = result.first['sum']
+    total ? '%.2f' % total : '0.00'
   end
 
   def year_to_date_total
     sql = <<~SQL
       SELECT SUM(amount)
-        FROM expenses
-        WHERE DATE_PART('year', expense_date) = $1
+        FROM transactions
+        WHERE DATE_PART('year', transaction_date) = $1
     SQL
     result = query(sql, CURRENT_DATE.year)
-    '%.2f' % result.first['sum']
+    
+    total = result.first['sum']
+    total ? '%.2f' % total : '0.00'
   end
 
   private
 
-  def tuple_to_hash_for_expense(tuple)
+  def tuple_to_hash_for_transaction(tuple)
     { id: tuple['id'],
       description: tuple['description'],
       amount: tuple['amount'],
-      date: tuple['expense_date'],
+      date: tuple['transaction_date'],
       category: tuple['category_name'] }
   end
 
@@ -239,9 +235,9 @@ class DatabasePersistance
     query(sql)
   end
 
-  def update_expense_categories(current_category_id, new_category_id)
+  def update_transaction_categories(current_category_id, new_category_id)
     sql = <<~SQL
-      UPDATE expenses
+      UPDATE transactions
         SET category_id = $1
         WHERE category_id = $2
     SQL
@@ -249,6 +245,6 @@ class DatabasePersistance
   end
 
   def capitalize_all_words(text)
-    text.split.map(&:capitalize).join
+    text.split.map(&:capitalize).join(' ')
   end
 end
