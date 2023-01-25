@@ -4,11 +4,6 @@
     <dd>
       <label for="name">Category Name:</label>
       <input name="name" type="text" list="categories" value="">
-      <datalist id="categories">
-        <% category_options do |category| %>
-          <option value="<%= category %>">
-        <% end %>
-      </datalist>
     </dd>
     <dd>
       <label for="max_amount">Monthly Budget:</label>
