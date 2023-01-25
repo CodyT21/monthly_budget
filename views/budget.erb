@@ -49,7 +49,7 @@
       <td><%= transaction[:amount] %></td>
       <td><%= transaction[:date] %></td>
       <td><%= transaction[:category] %></td>
-      <td><a href="/budget/ransactions/<%= transaction[:id] %>/edit" style="display: inline;"><button>Edit</button></a></td>
+      <td><a href="/budget/transactions/<%= transaction[:id] %>/edit" style="display: inline;"><button>Edit</button></a></td>
       <td>
         <form action="/budget/transactions/<%= transaction[:id] %>/destroy" method="post" style="display: inline;">
           <input type="submit" value="Delete">
@@ -74,5 +74,5 @@
 
 <% content_for :footer_links do %>
   <a href='/budget/transactions'><button>View All Transactions</button></a>
-  <a href='/budget/transactions/new'><button>Add an Transaction</button></a>
+  <a href='/budget/transactions/new'><button>Add a New Transaction</button></a>
 <% end %>

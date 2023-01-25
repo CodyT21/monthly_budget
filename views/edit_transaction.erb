@@ -11,7 +11,12 @@
     </dd>
     <dd>
       <label for="category">Category:</label>
-      <input name="category" type="text" value="<%= @transaction[:category] %>">
+      <input list="category" type="text" value="<%= @transaction[:category] %>">
+      <datalist id="category">
+        <% @categories.each do |category| %>
+          <option value="<%= category %>">
+        <% end %>
+      </datalist>
     </dd>
     <dd>
       <label for="date">Date:</label>
